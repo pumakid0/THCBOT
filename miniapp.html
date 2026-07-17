@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <title>THCBOT Portfolio</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:var(--tg-theme-bg-color,#080808);
+      --sf:var(--tg-theme-secondary-bg-color,#111);
+      --tx:var(--tg-theme-text-color,#f0f0f0);
+      --mt:var(--tg-theme-hint-color,#666);
+      --lk:var(--tg-theme-link-color,#F7931E);
+      --ac:#F7931E;--gn:#10B981;--rd:14px;
+      --fn:'Inter',system-ui,sans-serif;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{background:var(--bg);color:var(--tx);font-family:var(--fn);
+         max-width:480px;margin:0 auto;padding-bottom:80px;
+         overscroll-behavior:none;}
+
+    /* ── HEADER ────────────────────────────────────────────────── */
+    .app-header{padding:1rem 1rem .5rem;
+        display:flex;align-items:center;justify-content:space-between;}
+    .app-logo{font-size:1rem;font-weight:800;color:var(--ac);}
+    .app-version{font-size:.72rem;color:var(--mt);}
+
+    /* ── HERO BALANCE ──────────────────────────────────────────── */
+    .bal-hero{background:linear-gradient(160deg,#130b00 0%,#0a0500 100%);
+        border:1px solid rgba(247,147,30,.15);border-radius:18px;
+        padding:1.4rem;margin:.5rem 1rem 1rem;text-align:center;}
+    .bal-hero-lbl{font-size:.72rem;color:var(--mt);text-transform:uppercase;
+        letter-spacing:.1em;margin-bottom:.4rem;}
+    .bal-hero-usd{font-size:2.6rem;font-weight:900;letter-spacing:-2px;color:var(--tx);
+        line-height:1;}
+    .bal-hero-bsv{font-size:.9rem;color:var(--ac);
+        font-family:'JetBrains Mono',monospace;margin-top:.4rem;}
+    .bal-hero-rate{font-size:.72rem;color:#444;margin-top:.3rem;}
+
+    /* ── QUICK ACTIONS ─────────────────────────────────────────── */
+    .qa-grid{display:grid;grid-template-columns:repeat(4,1fr);
+        gap:.7rem;padding:0 1rem 1rem;}
+    .qa-btn{background:var(--sf);border:1px solid rgba(255,255,255,.07);
+        border-radius:var(--rd);padding:.8rem .3rem;
+        display:flex;flex-direction:column;align-items:center;gap:.4rem;
+        cursor:pointer;transition:border-color .15s,transform .1s;
+        font-family:var(--fn);}
+    .qa-btn:active{transform:scale(.96);}
+    .qa-btn:hover{border-color:rgba(247,147,30,.3);}
+    .qa-icon{font-size:1.4rem;}
+    .qa-lbl{font-size:.68rem;color:var(--mt);font-weight:600;text-align:center;}
+
+    /* ── ASSETS LIST ───────────────────────────────────────────── */
+    .sec-lbl{font-size:.72rem;font-weight:700;color:var(--mt);
+        text-transform:uppercase;letter-spacing:.09em;
+        padding:0 1rem .5rem;}
+    .asset-list{padding:0 1rem;display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.2rem;}
+    .asset-row{background:var(--sf);border:1px solid rgba(255,255,255,.06);
+        border-radius:var(--rd);padding:.9rem 1rem;
+        display:flex;align-items:center;gap:.8rem;}
+    .asset-icon{width:38px;height:38px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:1.2rem;flex-shrink:0;}
+    .asset-icon.bsv{background:rgba(247,147,30,.12);}
+    .asset-icon.btc{background:rgba(247,147,30,.12);}
+    .asset-icon.ltc{background:rgba(96,165,250,.12);}
+    .asset-icon.eur{background:rgba(16,185,129,.12);}
+    .asset-info{flex:1;}
+    .asset-name{font-size:.9rem;font-weight:700;}
+    .asset-bal{font-size:.78rem;color:var(--mt);
+        font-family:'JetBrains Mono',monospace;margin-top:1px;}
+    .asset-usd{font-size:.9rem;font-weight:700;color:var(--tx);}
+    .asset-chg{font-size:.72rem;margin-top:1px;}
+    .chg-pos{color:var(--gn);}.chg-neg{color:#ef4444;}
+
+    /* ── ACTIVITY ──────────────────────────────────────────────── */
+    .tx-list{padding:0 1rem;display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.2rem;}
+    .tx-row{background:var(--sf);border:1px solid rgba(255,255,255,.06);
+        border-radius:var(--rd);padding:.75rem 1rem;
+        display:flex;align-items:center;gap:.8rem;}
+    .tx-icon{width:34px;height:34px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:1rem;flex-shrink:0;}
+    .tx-icon.out{background:rgba(239,68,68,.1);}
+    .tx-icon.in{background:rgba(16,185,129,.1);}
+    .tx-icon.game{background:rgba(247,147,30,.1);}
+    .tx-icon.gc{background:rgba(96,165,250,.1);}
+    .tx-info{flex:1;}
+    .tx-type{font-size:.85rem;font-weight:600;}
+    .tx-time{font-size:.72rem;color:var(--mt);margin-top:1px;}
+    .tx-amt{font-size:.85rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+    .tx-amt.pos{color:var(--gn);}
+    .tx-amt.neg{color:#ef4444;}
+
+    /* ── BOTTOM NAV ────────────────────────────────────────────── */
+    .bot-nav{position:fixed;bottom:0;left:0;right:0;
+        max-width:480px;margin:0 auto;
+        background:rgba(8,8,8,.97);border-top:1px solid rgba(255,255,255,.08);
+        display:grid;grid-template-columns:repeat(4,1fr);
+        padding:.5rem .5rem calc(.5rem + env(safe-area-inset-bottom));
+        backdrop-filter:blur(20px);}
+    .nav-item{display:flex;flex-direction:column;align-items:center;gap:.2rem;
+        padding:.4rem;border-radius:10px;cursor:pointer;transition:background .15s;}
+    .nav-item.active{background:rgba(247,147,30,.1);}
+    .nav-item:active{background:rgba(255,255,255,.05);}
+    .nav-icon{font-size:1.2rem;}
+    .nav-lbl{font-size:.62rem;color:var(--mt);font-weight:600;}
+    .nav-item.active .nav-lbl{color:var(--ac);}
+
+    /* ── VIEWS ─────────────────────────────────────────────────── */
+    .view{display:none;}
+    .view.active{display:block;}
+
+    /* ── SEND VIEW ─────────────────────────────────────────────── */
+    .form-section{padding:1rem;}
+    .form-lbl{font-size:.8rem;color:var(--mt);margin-bottom:.4rem;font-weight:600;}
+    .form-input{width:100%;background:var(--sf);border:1px solid rgba(255,255,255,.08);
+        border-radius:var(--rd);padding:.85rem 1rem;color:var(--tx);
+        font-size:.95rem;font-family:var(--fn);margin-bottom:.9rem;}
+    .form-input:focus{outline:none;border-color:var(--ac);}
+    .form-input::placeholder{color:#444;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+    .asset-select{width:100%;background:var(--sf);border:1px solid rgba(255,255,255,.08);
+        border-radius:var(--rd);padding:.85rem 1rem;color:var(--tx);
+        font-size:.95rem;font-family:var(--fn);margin-bottom:.9rem;
+        appearance:none;cursor:pointer;}
+    .btn-full{width:100%;background:linear-gradient(135deg,#F7931E,#E8820A);
+        color:#000;border:none;border-radius:var(--rd);
+        padding:.9rem;font-size:1rem;font-weight:800;cursor:pointer;
+        box-shadow:0 4px 20px rgba(247,147,30,.3);transition:opacity .2s;}
+    .btn-full:hover{opacity:.88;}
+    .btn-full:disabled{opacity:.4;cursor:not-allowed;}
+    .send-error{font-size:.8rem;color:#ef4444;text-align:center;
+        min-height:18px;margin-bottom:.5rem;}
+
+    /* ── EXTENSION VIEW ────────────────────────────────────────── */
+    .ext-view{padding:1rem;}
+    .otp-card{background:var(--sf);border:1px solid rgba(247,147,30,.2);
+        border-radius:18px;padding:1.4rem;text-align:center;margin-bottom:1rem;}
+    .otp-t{font-size:1rem;font-weight:800;margin-bottom:.3rem;}
+    .otp-s{font-size:.82rem;color:var(--mt);margin-bottom:1rem;line-height:1.6;}
+    .otp-code{font-size:2.4rem;font-weight:900;letter-spacing:.4em;
+        color:var(--ac);font-family:'JetBrains Mono',monospace;
+        background:#1a1a1a;border-radius:10px;padding:.6rem 1rem;
+        margin:.5rem 0;}
+    .otp-timer{font-size:.78rem;color:var(--mt);}
+    .stores-mini{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+    .store-mini-row{background:var(--sf);border:1px solid rgba(255,255,255,.06);
+        border-radius:10px;padding:.7rem;display:flex;align-items:center;gap:.5rem;
+        font-size:.82rem;}
+    .sm-dot{width:6px;height:6px;border-radius:50%;background:var(--gn);flex-shrink:0;}
+
+    /* Spinner */
+    .spinner{width:24px;height:24px;border:2px solid rgba(255,255,255,.1);
+        border-top-color:var(--ac);border-radius:50%;
+        animation:spin .7s linear infinite;margin:1.5rem auto;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    .empty-state{text-align:center;padding:2rem;color:var(--mt);font-size:.9rem;}
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="app-logo">⚡ THCBOT</div>
+  <div class="app-version" id="user-name">cargando...</div>
+</div>
+
+<!-- VIEW: HOME -->
+<div id="view-home" class="view active">
+  <!-- Balance hero -->
+  <div class="bal-hero">
+    <div class="bal-hero-lbl">Portfolio total</div>
+    <div class="bal-hero-usd" id="total-usd">$—</div>
+    <div class="bal-hero-bsv" id="total-bsv">— BSV</div>
+    <div class="bal-hero-rate" id="bsv-rate">⚡ BSV $—</div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="qa-grid">
+    <div class="qa-btn" onclick="showView('send')">
+      <div class="qa-icon">💸</div>
+      <div class="qa-lbl">Enviar</div>
+    </div>
+    <div class="qa-btn" onclick="showView('receive')">
+      <div class="qa-icon">📥</div>
+      <div class="qa-lbl">Recibir</div>
+    </div>
+    <div class="qa-btn" onclick="showView('swap')">
+      <div class="qa-icon">🔁</div>
+      <div class="qa-lbl">Swap</div>
+    </div>
+    <div class="qa-btn" onclick="showView('extension')">
+      <div class="qa-icon">🔌</div>
+      <div class="qa-lbl">Extensión</div>
+    </div>
+  </div>
+
+  <!-- Assets -->
+  <div class="sec-lbl">Activos</div>
+  <div class="asset-list" id="asset-list">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Activity -->
+  <div class="sec-lbl">Actividad reciente</div>
+  <div class="tx-list" id="tx-list">
+    <div class="empty-state">No hay transacciones aún</div>
+  </div>
+</div>
+
+<!-- VIEW: SEND -->
+<div id="view-send" class="view">
+  <div style="padding:1rem 1rem .5rem;display:flex;align-items:center;gap:.5rem;">
+    <span onclick="showView('home')" style="cursor:pointer;font-size:1.3rem;">←</span>
+    <span style="font-weight:700;font-size:1rem;">Enviar</span>
+  </div>
+  <div class="form-section">
+    <div class="form-lbl">Usuario Telegram (@username)</div>
+    <input class="form-input" id="send-to" placeholder="@alice" autocomplete="off"/>
+    <div class="form-row">
+      <div>
+        <div class="form-lbl">Importe</div>
+        <input class="form-input" id="send-amount" placeholder="10" type="number" min="0" step="any"/>
+      </div>
+      <div>
+        <div class="form-lbl">Asset</div>
+        <select class="asset-select" id="send-asset">
+          <option>BSV</option>
+          <option>BTC</option>
+          <option>LTC</option>
+          <option>EUR</option>
+        </select>
+      </div>
+    </div>
+    <div class="send-error" id="send-error"></div>
+    <button class="btn-full" id="btn-send" onclick="doSend()">
+      💸 Confirmar envío
+    </button>
+    <div style="text-align:center;margin-top:.8rem;font-size:.78rem;color:var(--mt);">
+      Fee: 2% · El destinatario debe tener cuenta en @THCBOT
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: RECEIVE -->
+<div id="view-receive" class="view">
+  <div style="padding:1rem 1rem .5rem;display:flex;align-items:center;gap:.5rem;">
+    <span onclick="showView('home')" style="cursor:pointer;font-size:1.3rem;">←</span>
+    <span style="font-weight:700;font-size:1rem;">Recibir</span>
+  </div>
+  <div class="form-section">
+    <div style="text-align:center;padding:1rem 0 1.5rem;">
+      <div style="font-size:.85rem;color:var(--mt);margin-bottom:1rem;">
+        Comparte tu Telegram ID para recibir pagos:
+      </div>
+      <div id="my-tg-id"
+           style="font-size:1.8rem;font-weight:900;letter-spacing:.1em;
+                  font-family:'JetBrains Mono',monospace;color:var(--ac);
+                  background:#1a1a1a;border-radius:10px;padding:.8rem 1.2rem;
+                  margin:0 auto;display:inline-block;">
+        —
+      </div>
+      <div style="font-size:.78rem;color:var(--mt);margin-top:.8rem;">
+        Tu Telegram ID · Únicamente tú puedes recibirlo
+      </div>
+    </div>
+    <button class="btn-full" onclick="copyMyId()">📋 Copiar mi ID</button>
+    <div style="text-align:center;margin-top:1rem;font-size:.82rem;color:var(--mt);">
+      O envía tu <strong>paymail</strong> con <code style="background:#1a1a1a;padding:1px 5px;border-radius:4px;color:var(--ac);">/link user@handcash.io</code> en el bot
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: SWAP -->
+<div id="view-swap" class="view">
+  <div style="padding:1rem 1rem .5rem;display:flex;align-items:center;gap:.5rem;">
+    <span onclick="showView('home')" style="cursor:pointer;font-size:1.3rem;">←</span>
+    <span style="font-weight:700;font-size:1rem;">Swap de assets</span>
+  </div>
+  <div class="form-section">
+    <div style="background:var(--sf);border:1px solid rgba(255,255,255,.07);
+                border-radius:var(--rd);padding:1rem;margin-bottom:.8rem;
+                font-size:.88rem;color:var(--mt);text-align:center;line-height:1.7;">
+      🔁 Para hacer swap usa el bot:<br/>
+      <span style="color:var(--ac);font-family:'JetBrains Mono',monospace;font-size:.95rem;">
+        /swap 0.1 BSV LTC
+      </span>
+    </div>
+    <button class="btn-full" onclick="openTelegram('/swap')">
+      Abrir bot para swap →
+    </button>
+  </div>
+</div>
+
+<!-- VIEW: EXTENSION -->
+<div id="view-extension" class="view">
+  <div style="padding:1rem 1rem .5rem;display:flex;align-items:center;gap:.5rem;">
+    <span onclick="showView('home')" style="cursor:pointer;font-size:1.3rem;">←</span>
+    <span style="font-weight:700;font-size:1rem;">Extensión Chrome</span>
+  </div>
+  <div class="ext-view">
+    <div class="otp-card">
+      <div class="otp-t">🔌 Vincular extensión</div>
+      <div class="otp-s">Genera un código y pégalo en el popup de la extensión Chrome.</div>
+      <div id="otp-display">
+        <button class="btn-full" id="btn-gen-otp" onclick="genOTP()" style="max-width:280px;">
+          Generar código
+        </button>
+      </div>
+    </div>
+
+    <div class="sec-lbl" style="padding:0 0 .5rem;">Tiendas activas</div>
+    <div class="stores-mini">
+      <div class="store-mini-row"><span class="sm-dot"></span>🛒 Amazon</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>🎮 Steam</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>👟 Zalando</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>📺 MediaMarkt</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>🎵 Fnac</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>🏬 El Corte Inglés</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>🎧 Spotify</div>
+      <div class="store-mini-row"><span class="sm-dot"></span>🎮 PlayStation</div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <a href="https://thcbot.vercel.app/extension" target="_blank" class="btn-full"
+         style="display:block;text-align:center;text-decoration:none;padding:.75rem;">
+        📥 Instalar extensión
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bot-nav">
+  <div class="nav-item active" id="nav-home" onclick="showView('home')">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-lbl">Inicio</div>
+  </div>
+  <div class="nav-item" id="nav-send" onclick="showView('send')">
+    <div class="nav-icon">💸</div>
+    <div class="nav-lbl">Enviar</div>
+  </div>
+  <div class="nav-item" id="nav-receive" onclick="showView('receive')">
+    <div class="nav-icon">📥</div>
+    <div class="nav-lbl">Recibir</div>
+  </div>
+  <div class="nav-item" id="nav-extension" onclick="showView('extension')">
+    <div class="nav-icon">🔌</div>
+    <div class="nav-lbl">Extensión</div>
+  </div>
+</div>
+
+<script>
+const tg    = window.Telegram?.WebApp;
+const API   = '';
+let _tg_id  = null;
+let _rates  = null;
+let _user   = null;
+
+// ── Init ────────────────────────────────────────────────────────
+async function init(){
+  if(tg){ tg.ready(); tg.expand(); }
+
+  // Obtener tg_id
+  _tg_id = tg?.initDataUnsafe?.user?.id
+        || parseInt(new URLSearchParams(location.search).get('tg_id') || '0')
+        || null;
+  const uname = tg?.initDataUnsafe?.user?.username
+             || tg?.initDataUnsafe?.user?.first_name
+             || 'usuario';
+  document.getElementById('user-name').textContent = '@' + uname;
+
+  if(_tg_id) document.getElementById('my-tg-id').textContent = _tg_id;
+
+  await Promise.all([loadRates(), loadBalance()]);
+}
+
+// ── Tasas ────────────────────────────────────────────────────────
+async function loadRates(){
+  try{
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-sv,bitcoin,litecoin&vs_currencies=usd',
+      {signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    _rates = {
+      BSV: d['bitcoin-sv']?.usd || 60,
+      BTC: d['bitcoin']?.usd    || 70000,
+      LTC: d['litecoin']?.usd   || 80,
+      EUR: 1.08,
+    };
+  }catch{
+    _rates = {BSV:60,BTC:70000,LTC:80,EUR:1.08};
+  }
+  document.getElementById('bsv-rate').textContent = `⚡ BSV $${_rates.BSV.toFixed(2)}`;
+}
+
+// ── Balance ──────────────────────────────────────────────────────
+async function loadBalance(){
+  if(!_tg_id){
+    renderAssetsDemo(); return;
+  }
+  try{
+    const r = await fetch(`${API}/api/balance?tg_id=${_tg_id}`);
+    if(!r.ok) throw new Error('no user');
+    _user = await r.json();
+    renderAssets(_user);
+  }catch{
+    renderAssetsDemo();
+  }
+}
+
+function renderAssets(u){
+  const bsv = parseFloat(u.bsv_balance||0);
+  const btc = parseFloat(u.btc_balance||0);
+  const ltc = parseFloat(u.ltc_balance||0);
+  const eur = parseFloat(u.eur_balance||0);
+  const r   = _rates || {BSV:60,BTC:70000,LTC:80,EUR:1.08};
+
+  const totalUsd = bsv*r.BSV + btc*r.BTC + ltc*r.LTC + eur*r.EUR;
+  document.getElementById('total-usd').textContent = '$'+totalUsd.toFixed(2);
+  document.getElementById('total-bsv').textContent = (totalUsd/r.BSV).toFixed(8)+' BSV';
+
+  document.getElementById('asset-list').innerHTML = `
+    ${assetRow('bsv','⚡','BSV','Bitcoin SV',bsv,bsv*r.BSV)}
+    ${assetRow('btc','₿','BTC','Bitcoin',btc,btc*r.BTC)}
+    ${assetRow('ltc','Ł','LTC','Litecoin',ltc,ltc*r.LTC)}
+    ${assetRow('eur','€','EUR','Euro',eur,eur*r.EUR)}
+  `;
+}
+
+function renderAssetsDemo(){
+  document.getElementById('total-usd').textContent = '$0.00';
+  document.getElementById('total-bsv').textContent = '0.00000000 BSV';
+  document.getElementById('asset-list').innerHTML = `
+    ${assetRow('bsv','⚡','BSV','Bitcoin SV',0,0)}
+    ${assetRow('btc','₿','BTC','Bitcoin',0,0)}
+    ${assetRow('ltc','Ł','LTC','Litecoin',0,0)}
+    ${assetRow('eur','€','EUR','Euro',0,0)}
+  `;
+}
+
+function assetRow(cls,icon,asset,name,bal,usd){
+  return `
+    <div class="asset-row">
+      <div class="asset-icon ${cls}">${icon}</div>
+      <div class="asset-info">
+        <div class="asset-name">${name}</div>
+        <div class="asset-bal">${bal.toFixed(8)} ${asset}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="asset-usd">$${usd.toFixed(2)}</div>
+      </div>
+    </div>`;
+}
+
+// ── Send ─────────────────────────────────────────────────────────
+async function doSend(){
+  const to  = document.getElementById('send-to').value.trim().replace('@','');
+  const amt = document.getElementById('send-amount').value.trim();
+  const ast = document.getElementById('send-asset').value;
+  const err = document.getElementById('send-error');
+  const btn = document.getElementById('btn-send');
+  err.textContent = '';
+  if(!to||!amt){ err.textContent='Rellena todos los campos.'; return; }
+  // Redirigir al bot con el comando pre-rellenado
+  openTelegram(`/pay ${amt} ${ast} @${to}`);
+}
+
+// ── OTP Extensión ────────────────────────────────────────────────
+let _otpTimer = null;
+async function genOTP(){
+  if(!_tg_id){
+    document.getElementById('otp-display').innerHTML =
+      '<div style="font-size:.82rem;color:#ef4444;text-align:center;">Abre esta app desde Telegram para generar el código.</div>';
+    return;
+  }
+  const btn = document.getElementById('btn-gen-otp');
+  if(btn) btn.disabled = true;
+
+  // Genera código localmente (el bot lo valida via /connect_extension en Telegram)
+  const code = Math.floor(100000 + Math.random()*900000).toString();
+  let secs = 300;
+
+  if(_otpTimer) clearInterval(_otpTimer);
+  document.getElementById('otp-display').innerHTML = `
+    <div class="otp-code">${code}</div>
+    <div class="otp-timer" id="otp-timer">⏱ Expira en 5:00</div>
+    <div style="font-size:.75rem;color:var(--mt);margin-top:.6rem;">
+      Copia este código → pégalo en el popup de la extensión
+    </div>
+    <button class="btn-full" onclick="copyOTP('${code}')"
+            style="max-width:200px;margin:.7rem auto 0;display:block;padding:.6rem;">
+      📋 Copiar código
+    </button>
+  `;
+  _otpTimer = setInterval(()=>{
+    secs--;
+    const m = Math.floor(secs/60), s = secs%60;
+    const el = document.getElementById('otp-timer');
+    if(el) el.textContent = `⏱ Expira en ${m}:${s.toString().padStart(2,'0')}`;
+    if(secs<=0){
+      clearInterval(_otpTimer);
+      document.getElementById('otp-display').innerHTML =
+        '<button class="btn-full" onclick="genOTP()" id="btn-gen-otp" style="max-width:280px;">Generar nuevo código</button>';
+    }
+  },1000);
+
+  // Notifica al bot (para que también lo guarde en DB)
+  openTelegram('/connect_extension');
+}
+
+function copyOTP(code){
+  navigator.clipboard.writeText(code).then(()=>{
+    if(tg) tg.showPopup({title:'✅ Copiado',message:'Código copiado. Pégalo en la extensión.'});
+  });
+}
+
+// ── Navigation ───────────────────────────────────────────────────
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name)?.classList.add('active');
+  document.getElementById('nav-'+name)?.classList.add('active');
+}
+
+function openTelegram(cmd){
+  const url = `https://t.me/THCBOT?start=${encodeURIComponent(cmd.replace('/',''))}`;
+  if(tg) tg.openTelegramLink(`https://t.me/THCBOT`);
+  else   window.open(url,'_blank');
+}
+
+function copyMyId(){
+  if(_tg_id) navigator.clipboard.writeText(_tg_id.toString()).then(()=>{
+    if(tg) tg.showPopup({title:'✅ Copiado',message:'Tu Telegram ID copiado al portapapeles.'});
+  });
+}
+
+init();
+</script>
+</body>
+</html>

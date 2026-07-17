@@ -1,0 +1,73 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/webhook",
+      "dest": "api/webhook.py"
+    },
+    {
+      "src": "/api/paylink",
+      "dest": "api/paylink.py"
+    },
+    {
+      "src": "/api/balance",
+      "dest": "api/balance.py"
+    },
+    {
+      "src": "/api/connect_extension",
+      "dest": "api/connect_extension.py"
+    },
+    {
+      "src": "/api/buy_giftcard",
+      "dest": "api/buy_giftcard.py"
+    },
+    {
+      "src": "/api/cron_cleanup",
+      "dest": "api/cron_cleanup.py"
+    },
+    {
+      "src": "/api/cron_streams",
+      "dest": "api/cron_streams.py"
+    },
+    {
+      "src": "/pay",
+      "dest": "/pay.html"
+    },
+    {
+      "src": "/extension",
+      "dest": "/extension.html"
+    },
+    {
+      "src": "/miniapp",
+      "dest": "/miniapp.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron_cleanup",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron_streams",
+      "schedule": "* * * * *"
+    }
+  ],
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "TELEGRAM_TOKEN": "@telegram_token",
+    "WEBHOOK_SECRET": "@webhook_secret",
+    "FRONTEND_URL": "@frontend_url",
+    "COINGATE_API_KEY": "@coingate_api_key",
+    "OWNER_TG_ID": "@owner_tg_id"
+  }
+}

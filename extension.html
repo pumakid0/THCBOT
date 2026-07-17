@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>THCBOT Pay — Extensión Chrome · Paga con BSV en Amazon, Steam y más</title>
+  <meta name="description" content="Extensión Chrome gratuita. Paga con BSV en Amazon, Steam, Zalando, MediaMarkt, Fnac, El Corte Inglés, Spotify, PlayStation y Xbox."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:  #080808; --sf:  #0f0f0f; --br:  #1c1c1c; --br2: #242424;
+      --tx:  #f0f0f0; --mt:  #777;    --ac:  #F7931E; --gn:  #10B981;
+      --rd:  14px;    --fn:  'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body   { background:var(--bg); color:var(--tx); font-family:var(--fn);
+             min-height:100vh; line-height:1.6; overflow-x:hidden; }
+    a      { color:var(--ac); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    /* ── NAV ──────────────────────────────────────────────────── */
+    nav {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.1rem 2rem; border-bottom:1px solid var(--br);
+      position:sticky; top:0; z-index:100;
+      background:rgba(8,8,8,.94); backdrop-filter:blur(14px);
+    }
+    .nav-logo      { font-size:1.15rem; font-weight:800; color:var(--ac); }
+    .nav-logo span { color:var(--tx); }
+    .nav-links     { display:flex; gap:1.4rem; font-size:.88rem; }
+    .nav-links a   { color:var(--mt); transition:color .15s; }
+    .nav-links a:hover { color:var(--tx); text-decoration:none; }
+    .nav-cta { background:var(--ac); color:#000!important; padding:.42rem 1.1rem;
+               border-radius:8px; font-weight:700; font-size:.84rem; }
+    .nav-cta:hover { opacity:.87; text-decoration:none!important; }
+
+    /* ── HERO ─────────────────────────────────────────────────── */
+    .hero {
+      max-width:1100px; margin:0 auto;
+      padding:5rem 2rem 3rem;
+      display:grid; grid-template-columns:1fr 480px; gap:3rem; align-items:center;
+    }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:.4rem;
+      background:rgba(247,147,30,.08); color:var(--ac);
+      border:1px solid rgba(247,147,30,.22);
+      padding:.28rem .9rem; border-radius:999px;
+      font-size:.78rem; font-weight:700; letter-spacing:.05em;
+      margin-bottom:1.3rem;
+    }
+    .hero-badge .dot { width:6px; height:6px; border-radius:50%;
+                       background:var(--gn); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    h1 {
+      font-size:clamp(2rem,4.5vw,3.2rem); font-weight:900; line-height:1.08;
+      letter-spacing:-2px; margin-bottom:1.1rem;
+    }
+    h1 em { color:var(--ac); font-style:normal; }
+    .hero-p {
+      font-size:1.05rem; color:var(--mt); margin-bottom:2rem;
+      max-width:480px; line-height:1.7;
+    }
+    .hero-btns { display:flex; gap:.8rem; flex-wrap:wrap; }
+    .btn-primary {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:var(--ac); color:#000; padding:.8rem 1.7rem;
+      border-radius:var(--rd); font-weight:800; font-size:.95rem;
+      box-shadow:0 4px 24px rgba(247,147,30,.30);
+    }
+    .btn-primary:hover { opacity:.87; text-decoration:none; }
+    .btn-ghost {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:var(--sf); color:var(--tx); padding:.8rem 1.4rem;
+      border-radius:var(--rd); font-weight:600; font-size:.95rem;
+      border:1px solid var(--br2);
+    }
+    .btn-ghost:hover { border-color:var(--ac); text-decoration:none; }
+    .hero-note { font-size:.78rem; color:var(--mt); margin-top:.8rem; }
+
+    /* ── BROWSER MOCKUP ───────────────────────────────────────── */
+    .browser-wrap { position:relative; }
+    .browser {
+      background:#141414; border:1px solid var(--br2); border-radius:14px;
+      overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.7);
+    }
+    .browser-bar {
+      background:#1a1a1a; padding:.6rem 1rem;
+      display:flex; align-items:center; gap:.6rem;
+      border-bottom:1px solid var(--br);
+    }
+    .browser-dots { display:flex; gap:.35rem; }
+    .browser-dot  { width:10px; height:10px; border-radius:50%; }
+    .browser-dot.r { background:#ff5f57; }
+    .browser-dot.y { background:#febc2e; }
+    .browser-dot.g { background:#28c840; }
+    .browser-url {
+      flex:1; background:#111; border-radius:6px; padding:.3rem .8rem;
+      font-size:.75rem; color:var(--mt); font-family:'JetBrains Mono', monospace;
+    }
+    .browser-body { padding:1.4rem; }
+
+    /* Producto Amazon fake */
+    .fake-product { display:flex; gap:1rem; margin-bottom:1rem; }
+    .fake-img {
+      width:72px; height:72px; border-radius:8px; flex-shrink:0;
+      background:linear-gradient(135deg,#1e1e1e,#2a2a2a);
+      display:flex; align-items:center; justify-content:center; font-size:2rem;
+    }
+    .fake-info { flex:1; }
+    .fake-title { font-size:.82rem; font-weight:600; line-height:1.4; margin-bottom:.3rem; }
+    .fake-stars { font-size:.72rem; color:#F59E0B; }
+    .fake-price { font-size:1.3rem; font-weight:800; color:var(--tx); margin:.5rem 0; }
+
+    /* Botón inyectado (simulado) */
+    .injected-btn {
+      background:linear-gradient(135deg,#F7931E,#E8820A);
+      border-radius:8px; padding:.7rem 1rem;
+      display:flex; align-items:center; justify-content:space-between;
+      cursor:pointer; margin-bottom:.5rem;
+      box-shadow:0 2px 12px rgba(247,147,30,.3);
+      animation:glow 3s ease-in-out infinite;
+    }
+    @keyframes glow {
+      0%,100% { box-shadow:0 2px 12px rgba(247,147,30,.3); }
+      50%      { box-shadow:0 4px 24px rgba(247,147,30,.55); }
+    }
+    .inj-left  { display:flex; align-items:center; gap:.6rem; }
+    .inj-icon  { font-size:1.3rem; }
+    .inj-title { font-size:.82rem; font-weight:700; color:#000; }
+    .inj-sub   { font-size:.7rem;  color:rgba(0,0,0,.65); margin-top:1px; }
+    .inj-badge { background:rgba(0,0,0,.15); color:#000;
+                 padding:2px 7px; border-radius:999px;
+                 font-size:.65rem; font-weight:800; }
+    .fake-hint { font-size:.7rem; color:var(--mt); text-align:center; }
+
+    /* Extension popup (floating) */
+    .ext-popup {
+      position:absolute; top:-20px; right:-30px;
+      background:#0f0f0f; border:1px solid var(--br2);
+      border-radius:12px; padding:14px; width:180px;
+      box-shadow:0 12px 40px rgba(0,0,0,.7);
+    }
+    .ep-logo  { font-size:.82rem; font-weight:800; color:var(--ac); margin-bottom:6px; }
+    .ep-bal   { background:#1a1a1a; border-radius:8px; padding:8px;
+                text-align:center; margin-bottom:8px; }
+    .ep-bal-v { font-size:1rem; font-weight:800; color:var(--ac); }
+    .ep-bal-u { font-size:.65rem; color:var(--mt); }
+    .ep-store { display:flex; flex-direction:column; gap:3px; }
+    .ep-row   { display:flex; align-items:center; justify-content:space-between;
+                font-size:.68rem; }
+    .ep-dot-g { color:var(--gn); font-size:.6rem; }
+    .ep-name  { color:var(--mt); }
+
+    /* ── STATS ────────────────────────────────────────────────── */
+    .stats {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+      border:1px solid var(--br); border-radius:var(--rd); overflow:hidden;
+      margin-bottom:5rem; margin-left:2rem; margin-right:2rem;
+    }
+    .stat-item {
+      background:var(--sf); padding:1.5rem 1rem; text-align:center;
+    }
+    .stat-value { font-size:2rem; font-weight:900; color:var(--ac); }
+    .stat-label { font-size:.78rem; color:var(--mt); margin-top:.2rem; }
+
+    /* ── SECTIONS ─────────────────────────────────────────────── */
+    section { max-width:1100px; margin:0 auto; padding:3.5rem 2rem; }
+    .sec-eyebrow { font-size:.72rem; font-weight:700; color:var(--ac);
+                   text-transform:uppercase; letter-spacing:.12em; margin-bottom:.6rem; }
+    .sec-title   { font-size:1.9rem; font-weight:800; letter-spacing:-.7px;
+                   margin-bottom:.5rem; }
+    .sec-sub     { color:var(--mt); font-size:1rem; margin-bottom:2.5rem; }
+
+    /* ── STORES GRID ──────────────────────────────────────────── */
+    .stores-grid {
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:1rem;
+    }
+    .store-card {
+      background:var(--sf); border:1px solid var(--br);
+      border-radius:var(--rd); padding:1.3rem; transition:border-color .2s;
+      position:relative; overflow:hidden;
+    }
+    .store-card:hover { border-color:var(--ac); }
+    .store-card::before {
+      content:attr(data-emoji); position:absolute; right:-6px; bottom:-10px;
+      font-size:4rem; opacity:.06; line-height:1;
+    }
+    .store-card-header { display:flex; align-items:center; gap:.6rem; margin-bottom:.7rem; }
+    .store-emoji  { font-size:1.4rem; }
+    .store-name   { font-weight:700; font-size:.95rem; }
+    .store-live   { display:inline-flex; align-items:center; gap:.3rem;
+                    background:rgba(16,185,129,.1); color:var(--gn);
+                    padding:2px 8px; border-radius:999px; font-size:.7rem; font-weight:700; }
+    .store-domains{ font-size:.78rem; color:var(--mt); margin-bottom:.5rem; }
+    .store-denoms { font-size:.75rem; color:#555; }
+    .store-denoms strong { color:var(--ac); }
+
+    /* ── HOW IT WORKS ─────────────────────────────────────────── */
+    .steps-grid {
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem;
+    }
+    .step-card {
+      background:var(--sf); border:1px solid var(--br);
+      border-radius:var(--rd); padding:1.5rem; position:relative;
+    }
+    .step-card::after {
+      content:""; position:absolute; top:50%; right:-1.6rem;
+      width:1.2rem; height:2px; background:var(--br2);
+    }
+    .steps-grid > .step-card:last-child::after { display:none; }
+    .step-num-big {
+      font-size:2.5rem; font-weight:900; color:rgba(247,147,30,.15);
+      margin-bottom:.5rem; line-height:1;
+    }
+    .step-title { font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+    .step-body  { font-size:.88rem; color:var(--mt); line-height:1.6; }
+    .step-code  {
+      display:inline-block; background:#1a1a1a; color:var(--ac);
+      padding:2px 8px; border-radius:6px;
+      font-family:'JetBrains Mono', monospace; font-size:.82rem;
+      margin-top:.5rem;
+    }
+
+    /* ── INSTALL ──────────────────────────────────────────────── */
+    .install-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;
+    }
+    .install-card {
+      background:var(--sf); border:1px solid var(--br);
+      border-radius:var(--rd); padding:1.8rem;
+    }
+    .install-card.highlight { border-color:rgba(247,147,30,.3); }
+    .install-icon  { font-size:2rem; margin-bottom:.8rem; }
+    .install-title { font-size:1.05rem; font-weight:700; margin-bottom:.4rem; }
+    .install-sub   { font-size:.85rem; color:var(--mt); margin-bottom:1.2rem; line-height:1.6; }
+    .install-steps-list { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+    .install-steps-list li {
+      display:flex; align-items:flex-start; gap:.6rem; font-size:.85rem; color:var(--mt);
+    }
+    .install-steps-list li::before {
+      content:attr(data-n); background:var(--ac); color:#000;
+      width:18px; height:18px; border-radius:50%; font-size:.7rem; font-weight:800;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      margin-top:1px;
+    }
+    .install-btn {
+      display:flex; align-items:center; justify-content:center; gap:.5rem;
+      background:var(--ac); color:#000; border-radius:10px; padding:.75rem;
+      font-weight:800; font-size:.9rem; margin-top:1.2rem;
+    }
+    .install-btn:hover { opacity:.87; text-decoration:none; }
+    .install-btn.ghost {
+      background:var(--bg); border:1px solid var(--br2); color:var(--mt);
+    }
+    .install-btn.ghost:hover { border-color:var(--ac); color:var(--tx); }
+
+    /* ── FAQ ──────────────────────────────────────────────────── */
+    .faq-list { display:flex; flex-direction:column; gap:.8rem; }
+    .faq-item { background:var(--sf); border:1px solid var(--br);
+                border-radius:var(--rd); }
+    .faq-q {
+      padding:1rem 1.3rem; font-weight:600; font-size:.92rem;
+      cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+      user-select:none;
+    }
+    .faq-q::after { content:"﹢"; font-size:1.2rem; color:var(--mt); }
+    .faq-q.open::after { content:"﹣"; color:var(--ac); }
+    .faq-a {
+      padding:0 1.3rem; max-height:0; overflow:hidden;
+      transition:max-height .25s ease, padding .25s;
+      font-size:.88rem; color:var(--mt); line-height:1.7;
+    }
+    .faq-a.open { max-height:200px; padding-bottom:1rem; }
+
+    /* ── CTA FINAL ────────────────────────────────────────────── */
+    .cta-section {
+      text-align:center; padding:5rem 2rem;
+      background:radial-gradient(ellipse 60% 60% at 50% 0%, rgba(247,147,30,.07) 0%, transparent 70%);
+      border-top:1px solid var(--br);
+    }
+    .cta-section h2 { font-size:2rem; font-weight:900; letter-spacing:-1px; margin-bottom:.8rem; }
+    .cta-section p  { color:var(--mt); margin-bottom:2rem; max-width:460px; margin-left:auto; margin-right:auto; }
+
+    footer {
+      border-top:1px solid var(--br); padding:1.5rem 2rem;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:.8rem; color:var(--mt); flex-wrap:wrap; gap:1rem;
+    }
+
+    @media(max-width:900px){
+      .hero { grid-template-columns:1fr; }
+      .browser-wrap { display:none; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+      .install-grid { grid-template-columns:1fr; }
+      nav .nav-links { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">THC<span>BOT</span> Pay</div>
+  <div class="nav-links">
+    <a href="#stores">Tiendas</a>
+    <a href="#how">Cómo funciona</a>
+    <a href="#install">Instalar</a>
+    <a href="#faq">FAQ</a>
+    <a href="/">THCBOT Bot</a>
+  </div>
+  <a href="#install" class="nav-cta">⚡ Instalar gratis</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-badge"><span class="dot"></span>v1.1 — 9 tiendas activas</div>
+    <h1>Paga con <em>BSV</em><br/>en tus tiendas<br/>favoritas</h1>
+    <p class="hero-p">
+      Un botón ⚡ aparece directamente en Amazon, Steam, Zalando y 6 tiendas más.
+      Sin tarjeta, sin KYC — el código llega a Telegram en segundos.
+    </p>
+    <div class="hero-btns">
+      <a href="#install" class="btn-primary">⚡ Instalar extensión — gratis</a>
+      <a href="https://t.me/THCBOT" target="_blank" class="btn-ghost">Abrir bot Telegram →</a>
+    </div>
+    <div class="hero-note">Chrome · Brave · Edge · Opera — Manifest V3 · Sin acceso a datos privados</div>
+  </div>
+
+  <!-- BROWSER MOCKUP -->
+  <div class="browser-wrap">
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <div class="browser-dot r"></div>
+          <div class="browser-dot y"></div>
+          <div class="browser-dot g"></div>
+        </div>
+        <div class="browser-url">amazon.es/dp/B0CX4KJ7LM</div>
+      </div>
+      <div class="browser-body">
+        <div class="fake-product">
+          <div class="fake-img">📱</div>
+          <div class="fake-info">
+            <div class="fake-title">Samsung Galaxy S25 — 256GB Negro</div>
+            <div class="fake-stars">★★★★☆ 4.4 · 1.243 reseñas</div>
+            <div class="fake-price">899,00 €</div>
+          </div>
+        </div>
+        <!-- Botón inyectado simulado -->
+        <div class="injected-btn">
+          <div class="inj-left">
+            <div class="inj-icon">⚡</div>
+            <div>
+              <div class="inj-title">Pagar con BSV</div>
+              <div class="inj-sub">14.983150 BSV · 🛒 Amazon</div>
+            </div>
+          </div>
+          <div class="inj-badge">THCBOT</div>
+        </div>
+        <div class="fake-hint">Sin tarjeta · Sin KYC · Código llega a Telegram</div>
+      </div>
+    </div>
+
+    <!-- Popup flotante -->
+    <div class="ext-popup">
+      <div class="ep-logo">⚡ THCBOT Pay</div>
+      <div class="ep-bal">
+        <div class="ep-bal-v">0.052400 BSV</div>
+        <div class="ep-bal-u">≈ $3.14 · @usuario</div>
+      </div>
+      <div class="ep-store">
+        <div class="ep-row"><span>🛒 Amazon</span><span class="ep-dot-g">● Live</span></div>
+        <div class="ep-row"><span>🎮 Steam</span><span class="ep-dot-g">● Live</span></div>
+        <div class="ep-row"><span>👟 Zalando</span><span class="ep-dot-g">● Live</span></div>
+        <div class="ep-row"><span>📺 MediaMarkt</span><span class="ep-dot-g">● Live</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat-item"><div class="stat-value">9</div><div class="stat-label">Tiendas activas</div></div>
+  <div class="stat-item"><div class="stat-value">28</div><div class="stat-label">Dominios</div></div>
+  <div class="stat-item"><div class="stat-value">&lt;30s</div><div class="stat-label">Entrega gift card</div></div>
+  <div class="stat-item"><div class="stat-value">0 €</div><div class="stat-label">Coste extensión</div></div>
+</div>
+
+<!-- STORES -->
+<section id="stores">
+  <div class="sec-eyebrow">Cobertura</div>
+  <div class="sec-title">9 tiendas · 28 dominios</div>
+  <div class="sec-sub">El botón ⚡ aparece automáticamente en la página del producto</div>
+  <div class="stores-grid">
+    <div class="store-card" data-emoji="🛒">
+      <div class="store-card-header">
+        <span class="store-emoji">🛒</span>
+        <span class="store-name">Amazon</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">.es · .com · .co.uk · .de · .fr · .it · .nl</div>
+      <div class="store-denoms">Denomin. <strong>5 – 250 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🎮">
+      <div class="store-card-header">
+        <span class="store-emoji">🎮</span>
+        <span class="store-name">Steam</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">store.steampowered.com</div>
+      <div class="store-denoms">Denomin. <strong>5 – 100 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="👟">
+      <div class="store-card-header">
+        <span class="store-emoji">👟</span>
+        <span class="store-name">Zalando</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">.es · .com · .de · .fr · .it · .nl</div>
+      <div class="store-denoms">Denomin. <strong>10 – 200 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="📺">
+      <div class="store-card-header">
+        <span class="store-emoji">📺</span>
+        <span class="store-name">MediaMarkt</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">.es · .de · .at · .nl · .be</div>
+      <div class="store-denoms">Denomin. <strong>10 – 250 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🎵">
+      <div class="store-card-header">
+        <span class="store-emoji">🎵</span>
+        <span class="store-name">Fnac</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">.es · .com · .fr · .pt · .be</div>
+      <div class="store-denoms">Denomin. <strong>10 – 100 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🏬">
+      <div class="store-card-header">
+        <span class="store-emoji">🏬</span>
+        <span class="store-name">El Corte Inglés</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">elcorteingles.es</div>
+      <div class="store-denoms">Denomin. <strong>10 – 200 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🎧">
+      <div class="store-card-header">
+        <span class="store-emoji">🎧</span>
+        <span class="store-name">Spotify</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">spotify.com/premium</div>
+      <div class="store-denoms">Tarjetas <strong>1m · 3m · 6m</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🎮">
+      <div class="store-card-header">
+        <span class="store-emoji">🎮</span>
+        <span class="store-name">PlayStation Store</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">store.playstation.com</div>
+      <div class="store-denoms">Denomin. <strong>10 – 100 €</strong></div>
+    </div>
+    <div class="store-card" data-emoji="🟢">
+      <div class="store-card-header">
+        <span class="store-emoji">🟢</span>
+        <span class="store-name">Xbox Store</span>
+        <span class="store-live">✅ Live</span>
+      </div>
+      <div class="store-domains">xbox.com · microsoft.com</div>
+      <div class="store-denoms">Denomin. <strong>10 – 100 €</strong></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="border-top:1px solid var(--br)">
+  <div class="sec-eyebrow">Flujo</div>
+  <div class="sec-title">3 pasos, todo en Telegram</div>
+  <div class="sec-sub">No necesitas cuenta bancaria, tarjeta ni KYC</div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num-big">01</div>
+      <div class="step-title">Instala la extensión</div>
+      <div class="step-body">Descarga el ZIP y cárgala en <strong>chrome://extensions</strong> o instálala desde la Chrome Web Store cuando esté disponible.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-big">02</div>
+      <div class="step-title">Conecta con Telegram</div>
+      <div class="step-body">Envía <span class="step-code">/connect_extension</span> a @THCBOT → pega el código de 6 dígitos en el popup de la extensión.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-big">03</div>
+      <div class="step-title">Compra con ⚡</div>
+      <div class="step-body">Navega a cualquier producto compatible → pulsa el botón naranja → confirma → el código de gift card llega a Telegram en ~30 segundos.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-big">04</div>
+      <div class="step-title">Canjea el código</div>
+      <div class="step-body">Copia el código de gift card desde Telegram → pégalo en la caja de pago de la tienda. Sin pasos extra.</div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install" style="border-top:1px solid var(--br)">
+  <div class="sec-eyebrow">Descarga</div>
+  <div class="sec-title">Instalar en 2 minutos</div>
+  <div class="sec-sub">Gratis — sin cuenta, sin suscripción</div>
+  <div class="install-grid">
+    <!-- Opción A: ZIP dev -->
+    <div class="install-card highlight">
+      <div class="install-icon">📦</div>
+      <div class="install-title">Instalación manual (ya disponible)</div>
+      <div class="install-sub">Descarga el ZIP, descomprímelo y cárgalo como extensión sin empaquetar. Funciona en Chrome, Brave, Edge y Opera.</div>
+      <ul class="install-steps-list">
+        <li data-n="1">Descarga el ZIP y descomprímelo</li>
+        <li data-n="2">Abre <strong>chrome://extensions</strong></li>
+        <li data-n="3">Activa <em>Modo desarrollador</em> (arriba derecha)</li>
+        <li data-n="4">Pulsa <em>Cargar descomprimida</em> → selecciona la carpeta</li>
+        <li data-n="5">Abre el popup ⚡ → pega tu código de Telegram</li>
+      </ul>
+      <a href="/extension/thcbot-pay-v1.1.zip" class="install-btn">
+        📥 Descargar ZIP — v1.1
+      </a>
+    </div>
+    <!-- Opción B: Chrome Web Store -->
+    <div class="install-card">
+      <div class="install-icon">🏪</div>
+      <div class="install-title">Chrome Web Store (próximamente)</div>
+      <div class="install-sub">Instalación con un solo clic. Actualizaciones automáticas. En revisión por Google.</div>
+      <ul class="install-steps-list">
+        <li data-n="1">Pulsa <em>Añadir a Chrome</em></li>
+        <li data-n="2">Confirma los permisos</li>
+        <li data-n="3">Abre el popup ⚡ → pega tu código</li>
+      </ul>
+      <a href="https://t.me/THCBOT" target="_blank" class="install-btn ghost">
+        🔔 Avísame cuando esté listo
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="border-top:1px solid var(--br)">
+  <div class="sec-eyebrow">Preguntas</div>
+  <div class="sec-title">FAQ</div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q">¿La extensión accede a mis contraseñas o datos de pago?</div>
+      <div class="faq-a">No. La extensión solo lee el título, precio e imagen del producto de la página que estás visitando. No accede a cookies de sesión, contraseñas ni datos de tarjeta. Los permisos están limitados a los dominios de las 9 tiendas soportadas.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Cómo llega la gift card? ¿Funciona al instante?</div>
+      <div class="faq-a">Sí. Tras confirmar el pago, el bot descuenta BSV de tu saldo, compra la gift card digital al proveedor y te envía el código directamente en Telegram. El proceso tarda entre 10 y 30 segundos.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Qué pasa si el producto cuesta 37 € y la denominación mínima es 40 €?</div>
+      <div class="faq-a">La extensión selecciona la denominación inmediatamente superior (40 €) y te avisa en el modal. Recibirás una gift card de 40 € — el excedente de 3 € podrás usarlo en tu próxima compra en la misma tienda.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Cuánto es el fee total?</div>
+      <div class="faq-a">El proveedor de gift cards cobra aproximadamente un 7% sobre el valor facial. No hay fee adicional de THCBOT. El tipo de cambio BSV/EUR se actualiza en tiempo real via CoinGecko.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Funciona en Firefox?</div>
+      <div class="faq-a">Actualmente está optimizada para Chromium (Chrome, Brave, Edge, Opera). El soporte para Firefox está en roadmap para v1.2 ya que requiere algunas adaptaciones de la Web Extensions API.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Cómo cargo saldo BSV en el bot?</div>
+      <div class="faq-a">Envía /balance a @THCBOT para ver tu dirección de depósito BSV. También puedes vincular tu paymail HandCash con /link y recibir pagos directamente.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="cta-section">
+  <h2>Empieza a pagar con BSV hoy</h2>
+  <p>Instala la extensión, conecta con Telegram y usa tu saldo en 9 tiendas sin tarjeta.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="#install" class="btn-primary">⚡ Instalar extensión</a>
+    <a href="https://t.me/THCBOT" target="_blank" class="btn-ghost">Abrir @THCBOT →</a>
+  </div>
+</div>
+
+<footer>
+  <span>THCBOT Pay v1.1 — Bitcoin as a Computer</span>
+  <div style="display:flex;gap:1.2rem">
+    <a href="/">THCBOT Bot</a>
+    <a href="https://t.me/THCBOT" target="_blank">Telegram</a>
+    <a href="/pay">PayLinks</a>
+  </div>
+</footer>
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll(".faq-q").forEach(q => {
+    q.addEventListener("click", () => {
+      const a    = q.nextElementSibling;
+      const open = q.classList.contains("open");
+      document.querySelectorAll(".faq-q.open").forEach(o => {
+        o.classList.remove("open");
+        o.nextElementSibling.classList.remove("open");
+      });
+      if (!open) { q.classList.add("open"); a.classList.add("open"); }
+    });
+  });
+</script>
+</body>
+</html>

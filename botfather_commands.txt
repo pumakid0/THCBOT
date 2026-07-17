@@ -1,0 +1,23 @@
+start - Bienvenida y menú principal
+help - Lista completa de comandos
+version - Versión y estadísticas del bot
+balance - Ver saldo multi-asset
+link - Vincular wallet o paymail
+rate - Precio spot de un asset
+pay - Enviar BSV, BTC o LTC
+pew - Enviar a todos los usuarios activos
+rain - Lluvia de BSV a usuarios aleatorios
+paylink - Crear enlace de cobro compartible
+mylinks - Ver mis paylinks activos
+seal - Sellar texto en blockchain BSV
+swap - Intercambiar entre assets
+dice - Juego de dados x1.9
+flip - Cara o cruz x1.94
+rps - Piedra Papel Tijera x1.94
+leaderboard - Top 10 holders BSV
+stats - Estadísticas del bot
+active - Activar/desactivar para rain y pew
+stream - Iniciar micropago por segundo
+streamers - Ver streams activos
+fund - Donar al proyecto
+connect_extension - Vincular extensión Chrome THCBOT Pay

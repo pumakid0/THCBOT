@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>THCBOT Pay — Pagar enlace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#080808;--sf:#111;--br:#1e1e1e;--tx:#f0f0f0;--mt:#777;
+          --ac:#F7931E;--gn:#10B981;--rd:14px;
+          --fn:'Inter',system-ui,sans-serif;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--tx);font-family:var(--fn);
+         min-height:100vh;display:flex;flex-direction:column;align-items:center;
+         justify-content:center;padding:1.5rem;}
+
+    .card{width:100%;max-width:420px;background:var(--sf);
+          border:1px solid var(--br);border-radius:20px;
+          overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,.6);}
+    .card-head{background:linear-gradient(135deg,#130b00,#0f0800);
+        border-bottom:1px solid var(--br);padding:1.6rem;text-align:center;}
+    .head-logo{font-size:.9rem;font-weight:800;color:var(--ac);margin-bottom:.8rem;}
+    .head-amount{font-size:2.8rem;font-weight:900;letter-spacing:-2px;color:var(--tx);}
+    .head-bsv{font-size:.95rem;color:var(--ac);font-family:'JetBrains Mono',monospace;
+        margin-top:.3rem;}
+    .head-desc{font-size:.9rem;color:var(--mt);margin-top:.5rem;}
+
+    .card-body{padding:1.6rem;}
+
+    /* Info rows */
+    .info-row{display:flex;justify-content:space-between;align-items:center;
+        padding:.7rem 0;border-bottom:1px solid var(--br);}
+    .info-row:last-of-type{border-bottom:none;}
+    .info-l{font-size:.82rem;color:var(--mt);}
+    .info-r{font-size:.88rem;font-weight:600;font-family:'JetBrains Mono',monospace;}
+    .badge-paid{background:rgba(16,185,129,.1);color:var(--gn);
+        padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:700;font-family:var(--fn);}
+    .badge-pend{background:rgba(247,147,30,.1);color:var(--ac);
+        padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:700;font-family:var(--fn);}
+
+    /* Pago con Telegram */
+    .pay-section{margin-top:1.2rem;}
+    .pay-lbl{font-size:.78rem;color:var(--mt);margin-bottom:.6rem;text-align:center;}
+    .tg-input-row{display:flex;gap:.5rem;margin-bottom:.8rem;}
+    .tg-input{flex:1;background:#1a1a1a;border:1px solid var(--br);
+        border-radius:var(--rd);padding:.75rem 1rem;color:var(--tx);
+        font-size:.9rem;font-family:var(--fn);}
+    .tg-input:focus{outline:none;border-color:var(--ac);}
+    .tg-input::placeholder{color:#444;}
+    .btn-pay{width:100%;background:linear-gradient(135deg,#F7931E,#E8820A);
+        color:#000;border:none;border-radius:var(--rd);padding:.9rem;
+        font-size:1rem;font-weight:800;cursor:pointer;
+        box-shadow:0 4px 20px rgba(247,147,30,.3);transition:opacity .2s;}
+    .btn-pay:hover{opacity:.88;}
+    .btn-pay:disabled{opacity:.4;cursor:not-allowed;}
+
+    /* Separador OR */
+    .or-sep{display:flex;align-items:center;gap:.8rem;margin:1rem 0;}
+    .or-line{flex:1;height:1px;background:var(--br);}
+    .or-txt{font-size:.75rem;color:var(--mt);}
+
+    /* BSV directo */
+    .addr-box{background:#1a1a1a;border:1px solid var(--br);border-radius:10px;
+        padding:.8rem 1rem;display:flex;align-items:center;justify-content:space-between;
+        gap:.8rem;}
+    .addr-txt{font-size:.72rem;font-family:'JetBrains Mono',monospace;
+        color:var(--mt);word-break:break-all;flex:1;}
+    .copy-btn{background:#222;border:1px solid var(--br);color:var(--mt);
+        padding:.35rem .7rem;border-radius:7px;font-size:.75rem;cursor:pointer;
+        white-space:nowrap;flex-shrink:0;}
+    .copy-btn:hover{border-color:var(--ac);color:var(--ac);}
+
+    /* Estados */
+    .state-loading,.state-error,.state-success,.state-expired{
+        text-align:center;padding:2.5rem 1.6rem;}
+    .state-icon{font-size:3.5rem;margin-bottom:.8rem;}
+    .state-t{font-size:1.2rem;font-weight:800;margin-bottom:.4rem;}
+    .state-s{font-size:.88rem;color:var(--mt);line-height:1.6;}
+    .spinner{width:36px;height:36px;border:3px solid var(--br);
+        border-top-color:var(--ac);border-radius:50%;
+        animation:spin .7s linear infinite;margin:0 auto 1rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .error-msg{font-size:.8rem;color:#ef4444;text-align:center;min-height:18px;margin-top:.4rem;}
+
+    .powered{text-align:center;font-size:.75rem;color:#333;margin-top:1.2rem;}
+    .powered a{color:#444;}
+  </style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <!-- Estados manejados por JS -->
+  <div id="state-loading">
+    <div class="state-loading">
+      <div class="spinner"></div>
+      <div style="font-size:.9rem;color:var(--mt)">Cargando enlace...</div>
+    </div>
+  </div>
+</div>
+
+<div class="powered">Powered by <a href="/">THCBOT</a> · Bitcoin SV</div>
+
+<script>
+const API = '';  // mismo dominio
+
+// ── Helpers ──────────────────────────────────────────────────────
+const qs  = p => document.getElementById(p);
+const linkId = new URLSearchParams(location.search).get('id');
+
+// ── Cargar paylink ───────────────────────────────────────────────
+async function loadLink(){
+  if(!linkId){
+    renderError('Sin ID','Falta el parámetro ?id= en la URL.');
+    return;
+  }
+  try{
+    const r = await fetch(`${API}/api/paylink?id=${linkId}`);
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || 'No encontrado');
+    renderLink(d);
+  }catch(e){
+    renderError('Enlace no encontrado', e.message);
+  }
+}
+
+// ── Precio BSV en tiempo real ────────────────────────────────────
+let _rate = null;
+async function getBSVRate(){
+  if(_rate) return _rate;
+  try{
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-sv&vs_currencies=eur,usd',
+      {signal: AbortSignal.timeout(5000)});
+    const d = await r.json();
+    _rate = d['bitcoin-sv'] || {eur:60,usd:65};
+  }catch{
+    _rate = {eur:60,usd:65};
+  }
+  return _rate;
+}
+
+// ── Render enlace ────────────────────────────────────────────────
+async function renderLink(link){
+  const rates = await getBSVRate();
+  const bsv   = parseFloat(link.amount);
+  const eur   = (bsv * rates.eur).toFixed(2);
+  const paid  = link.paid;
+  const addr  = link.bsv_addr || link.paymail || '';
+
+  document.getElementById('card').innerHTML = `
+    <div class="card-head">
+      <div class="head-logo">⚡ THCBOT Pay</div>
+      <div class="head-amount">${eur} €</div>
+      <div class="head-bsv">${bsv.toFixed(8)} BSV</div>
+      ${link.description ? `<div class="head-desc">${link.description}</div>` : ''}
+    </div>
+    <div class="card-body">
+      <div class="info-row">
+        <span class="info-l">Estado</span>
+        <span class="${paid ? 'badge-paid' : 'badge-pend'}">${paid ? '✅ Pagado' : '⏳ Pendiente'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-l">Enlace ID</span>
+        <span class="info-r" style="font-size:.78rem">${link.id}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-l">Rate BSV/EUR</span>
+        <span class="info-r">${rates.eur.toFixed(2)} €</span>
+      </div>
+
+      ${!paid ? `
+      <div class="pay-section">
+        <div class="pay-lbl">Pagar con saldo THCBOT (Telegram)</div>
+        <div class="tg-input-row">
+          <input class="tg-input" id="tg-id-input"
+                 placeholder="Tu Telegram ID (ej: 123456789)"
+                 type="number"/>
+        </div>
+        <button class="btn-pay" id="btn-pay" onclick="doPay()">
+          ⚡ Pagar ${bsv.toFixed(8)} BSV
+        </button>
+        <div class="error-msg" id="pay-error"></div>
+
+        ${addr ? `
+        <div class="or-sep">
+          <div class="or-line"></div><div class="or-txt">O</div><div class="or-line"></div>
+        </div>
+        <div style="font-size:.78rem;color:var(--mt);margin-bottom:.5rem;">
+          Enviar BSV directamente a:
+        </div>
+        <div class="addr-box">
+          <div class="addr-txt" id="addr-txt">${addr}</div>
+          <button class="copy-btn" onclick="copyAddr()">Copiar</button>
+        </div>` : ''}
+      </div>
+      ` : `
+      <div style="text-align:center;padding:1.5rem 0;">
+        <div style="font-size:2.5rem;margin-bottom:.6rem;">✅</div>
+        <div style="font-weight:700;margin-bottom:.3rem;">Pago completado</div>
+        <div style="font-size:.85rem;color:var(--mt);">Este enlace ya ha sido pagado.</div>
+      </div>
+      `}
+
+      <div style="text-align:center;margin-top:1rem;">
+        <a href="https://t.me/THCBOT" target="_blank"
+           style="font-size:.8rem;color:var(--mt);">
+          ¿Sin cuenta? → Abrir @THCBOT en Telegram
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+// ── Pagar ────────────────────────────────────────────────────────
+async function doPay(){
+  const tgId = document.getElementById('tg-id-input')?.value?.trim();
+  const err  = document.getElementById('pay-error');
+  const btn  = document.getElementById('btn-pay');
+  err.textContent = '';
+  if(!tgId || isNaN(tgId)){
+    err.textContent = 'Introduce un Telegram ID válido. Lo encuentras en @userinfobot';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+  try{
+    const r = await fetch(`${API}/api/paylink`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: linkId, tg_id: parseInt(tgId)}),
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || 'Error al pagar');
+    document.getElementById('card').innerHTML = `
+      <div class="state-success">
+        <div class="state-icon">🎉</div>
+        <div class="state-t">¡Pago enviado!</div>
+        <div class="state-s">
+          El propietario ha recibido el pago.<br/>
+          Puedes cerrar esta ventana.
+        </div>
+        <a href="https://t.me/THCBOT" target="_blank"
+           style="display:inline-block;margin-top:1rem;
+                  background:var(--ac);color:#000;padding:.7rem 1.4rem;
+                  border-radius:10px;font-weight:700;font-size:.9rem;text-decoration:none;">
+          Abrir @THCBOT
+        </a>
+      </div>`;
+  }catch(e){
+    err.textContent = e.message;
+    btn.disabled    = false;
+    btn.textContent = `⚡ Pagar`;
+  }
+}
+
+// ── Copy address ──────────────────────────────────────────────────
+function copyAddr(){
+  const txt = document.getElementById('addr-txt')?.textContent;
+  if(txt) navigator.clipboard.writeText(txt).then(()=>{
+    const btn = document.querySelector('.copy-btn');
+    if(btn){ btn.textContent='✓ Copiado'; setTimeout(()=>btn.textContent='Copiar',1500); }
+  });
+}
+
+// ── Error / Expired ──────────────────────────────────────────────
+function renderError(title, msg){
+  document.getElementById('card').innerHTML = `
+    <div class="state-error">
+      <div class="state-icon">❌</div>
+      <div class="state-t">${title}</div>
+      <div class="state-s">${msg}</div>
+      <a href="/" style="display:inline-block;margin-top:1rem;
+         color:var(--ac);font-size:.9rem;">← Volver al inicio</a>
+    </div>`;
+}
+
+loadLink();
+</script>
+</body>
+</html>
