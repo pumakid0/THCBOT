@@ -21,6 +21,7 @@ import random
 import string
 import hashlib
 import logging
+import json
 from decimal import Decimal, ROUND_DOWN
 
 import httpx
@@ -35,18 +36,21 @@ from telegram.ext import (
     ContextTypes,
 )
 
+# ──────────────────────────────────────────────────────────────────
+# Config
+# ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 log = logging.getLogger("thcbot")
 
-TOKEN = os.environ.get("TELEGRAM_TOKEN", "7756752931:AAGMoVMBbktBYo9OG05lMoywVBX4clkxBMk")
-DB_URL = os.environ["SUPABASE_URL"]
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+DB_URL = os.environ.get("SUPABASE_URL", "")
 OWNER_TG_ID = int(os.environ.get("OWNER_TG_ID", "0") or 0)
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
 
-if "?" not in DB_URL:
+if DB_URL and "?" not in DB_URL:
     DB_URL = DB_URL + "?sslmode=require&connect_timeout=5"
 
 ASSETS = ("BSV", "BTC", "LTC", "MNEE", "EUR")
@@ -59,9 +63,12 @@ CG_IDS = {
 
 _rate_cache: dict = {}
 _cache_ts: float = 0.0
-CACHE_TTL = 60
+CACHE_TTL = 60  # segundos
 
 
+# ══════════════════════════════════════════════════════════════════
+# DB LAYER
+# ══════════════════════════════════════════════════════════════════
 def get_conn():
     return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -188,11 +195,10 @@ def transfer(sender_id: int, receiver_id: int, amount: float, asset: str,
         f"UPDATE users SET {col} = {col} + %s, updated_at=NOW() WHERE tg_id=%s",
         (amount, receiver_id),
     )
-    import json as _json
     cur.execute(
         """INSERT INTO transactions (sender_id, receiver_id, amount, asset, type, meta)
            VALUES (%s,%s,%s,%s,%s,%s::jsonb)""",
-        (sender_id, receiver_id, amount, asset, tx_type, _json.dumps(meta or {})),
+        (sender_id, receiver_id, amount, asset, tx_type, json.dumps(meta or {})),
     )
     conn.commit()
     conn.close()
@@ -338,17 +344,19 @@ def create_otp(sender_id: int) -> str:
     code = "".join(random.choices(string.digits, k=6))
     conn = get_conn()
     cur = conn.cursor()
-    import json as _json
     cur.execute(
         """INSERT INTO transactions (sender_id, receiver_id, amount, asset, type, meta)
            VALUES (%s,-1,0,'BSV','EXTENSION_OTP',%s::jsonb)""",
-        (sender_id, _json.dumps({"code": code, "used": False})),
+        (sender_id, json.dumps({"code": code, "used": False})),
     )
     conn.commit()
     conn.close()
     return code
 
 
+# ══════════════════════════════════════════════════════════════════
+# UTILS — tasas y parseo de importes
+# ══════════════════════════════════════════════════════════════════
 async def get_rates() -> dict:
     global _rate_cache, _cache_ts
     if time.time() - _cache_ts < CACHE_TTL and _rate_cache:
@@ -402,6 +410,9 @@ def fmt_bsv(amount: float) -> str:
     return f"{amount:.8f} BSV"
 
 
+# ══════════════════════════════════════════════════════════════════
+# HANDLERS — 23 comandos
+# ══════════════════════════════════════════════════════════════════
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     ensure_user(u.id, u.username or "", u.first_name or "")
@@ -619,8 +630,13 @@ async def cmd_swap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if bal < amount:
         await update.message.reply_text(f"❌ Saldo {from_asset} insuficiente")
         return
+    
     usd_value = amount * rates.get(from_asset, 1)
     to_amount = usd_value / rates.get(to_asset, 1)
+    
+    # Redondeo seguro a 8 decimales
+    to_amount = float(Decimal(str(to_amount)).quantize(Decimal("0.00000001"), rounding=ROUND_DOWN))
+    
     conn = get_conn()
     cur = conn.cursor()
     col_from, col_to = _asset_column(from_asset), _asset_column(to_asset)
@@ -763,17 +779,9 @@ async def cb_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    log.error("Excepción manejando update:", exc_info=context.error)
-    if isinstance(update, Update) and update.effective_message:
-        try:
-            await update.effective_message.reply_text(
-                "⚠️ Ocurrió un error interno. Intenta de nuevo en unos segundos."
-            )
-        except Exception:
-            pass
-
-
+# ══════════════════════════════════════════════════════════════════
+# MAIN — arranque en modo polling (Railway)
+# ══════════════════════════════════════════════════════════════════
 def build_app() -> Application:
     app = Application.builder().token(TOKEN).build()
 
@@ -807,7 +815,6 @@ def build_app() -> Application:
         app.add_handler(CommandHandler(cmd, fn))
 
     app.add_handler(CallbackQueryHandler(cb_query_handler))
-    app.add_error_handler(error_handler)
 
     return app
 
@@ -815,8 +822,17 @@ def build_app() -> Application:
 def main():
     log.info("THCBOT v1.0 — arrancando en modo polling...")
     app = build_app()
+    
+    # Pausa breve para dar tiempo a que el contenedor viejo muera en Railway
+    time.sleep(3)
+    
     log.info("Bot listo. Escuchando actualizaciones de Telegram...")
-    app.run_polling(allowed_updates=["message", "callback_query"])
+    
+    # Se añade drop_pending_updates=True para que deseche updates encoladas e ignore el conflicto
+    app.run_polling(
+        allowed_updates=["message", "callback_query"],
+        drop_pending_updates=True
+    )
 
 
 if __name__ == "__main__":
