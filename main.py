@@ -35,16 +35,13 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ──────────────────────────────────────────────────────────────────
-# Config
-# ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 log = logging.getLogger("thcbot")
 
-TOKEN = os.environ["TELEGRAM_TOKEN"]
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "7756752931:AAGMoVMBbktBYo9OG05lMoywVBX4clkxBMk")
 DB_URL = os.environ["SUPABASE_URL"]
 OWNER_TG_ID = int(os.environ.get("OWNER_TG_ID", "0") or 0)
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
@@ -62,12 +59,9 @@ CG_IDS = {
 
 _rate_cache: dict = {}
 _cache_ts: float = 0.0
-CACHE_TTL = 60  # segundos
+CACHE_TTL = 60
 
 
-# ══════════════════════════════════════════════════════════════════
-# DB LAYER
-# ══════════════════════════════════════════════════════════════════
 def get_conn():
     return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -355,9 +349,6 @@ def create_otp(sender_id: int) -> str:
     return code
 
 
-# ══════════════════════════════════════════════════════════════════
-# UTILS — tasas y parseo de importes
-# ══════════════════════════════════════════════════════════════════
 async def get_rates() -> dict:
     global _rate_cache, _cache_ts
     if time.time() - _cache_ts < CACHE_TTL and _rate_cache:
@@ -411,9 +402,6 @@ def fmt_bsv(amount: float) -> str:
     return f"{amount:.8f} BSV"
 
 
-# ══════════════════════════════════════════════════════════════════
-# HANDLERS — 23 comandos
-# ══════════════════════════════════════════════════════════════════
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     ensure_user(u.id, u.username or "", u.first_name or "")
@@ -775,9 +763,17 @@ async def cb_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
 
-# ══════════════════════════════════════════════════════════════════
-# MAIN — arranque en modo polling (Railway)
-# ══════════════════════════════════════════════════════════════════
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    log.error("Excepción manejando update:", exc_info=context.error)
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "⚠️ Ocurrió un error interno. Intenta de nuevo en unos segundos."
+            )
+        except Exception:
+            pass
+
+
 def build_app() -> Application:
     app = Application.builder().token(TOKEN).build()
 
@@ -811,6 +807,7 @@ def build_app() -> Application:
         app.add_handler(CommandHandler(cmd, fn))
 
     app.add_handler(CallbackQueryHandler(cb_query_handler))
+    app.add_error_handler(error_handler)
 
     return app
 
